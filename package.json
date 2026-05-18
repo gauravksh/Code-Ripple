@@ -1,0 +1,189 @@
+{
+  "name": "coderipple",
+  "displayName": "CodeRipple — Copilot Change Intelligence",
+  "description": "See how your Copilot edits ripple through the codebase. Workspace Pulse, Impact Map, and a semantic Flow Diagram for multi-file changes.",
+  "version": "0.1.0",
+  "publisher": "odysseylabs",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gauravksh/coderipple.git"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization",
+    "AI"
+  ],
+  "keywords": [
+    "copilot",
+    "change",
+    "impact",
+    "diagram",
+    "review"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "coderipple",
+          "title": "CodeRipple",
+          "icon": "media/ripple.svg"
+        }
+      ]
+    },
+    "views": {
+      "coderipple": [
+        {
+          "id": "coderipple.pulse",
+          "name": "Workspace Pulse",
+          "icon": "media/pulse.svg",
+          "contextualTitle": "CodeRipple"
+        },
+        {
+          "id": "coderipple.impact",
+          "name": "Impact Map",
+          "icon": "media/ripple.svg",
+          "contextualTitle": "CodeRipple"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "coderipple.analyze",
+        "title": "CodeRipple: Analyze Changes",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "coderipple.refresh",
+        "title": "CodeRipple: Refresh Views",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "coderipple.openFlow",
+        "title": "CodeRipple: Open Flow Diagram",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "coderipple.explainCluster",
+        "title": "CodeRipple: Explain This Cluster"
+      },
+      {
+        "command": "coderipple.toggleAuto",
+        "title": "CodeRipple: Toggle Auto-Analyze"
+      },
+      {
+        "command": "coderipple.clearCache",
+        "title": "CodeRipple: Clear Cache"
+      },
+      {
+        "command": "coderipple.showMetrics",
+        "title": "CodeRipple: Show Local Metrics"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "coderipple.analyze",
+          "when": "view == coderipple.pulse",
+          "group": "navigation@1"
+        },
+        {
+          "command": "coderipple.openFlow",
+          "when": "view == coderipple.pulse",
+          "group": "navigation@2"
+        },
+        {
+          "command": "coderipple.refresh",
+          "when": "view == coderipple.impact",
+          "group": "navigation@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "coderipple.explainCluster",
+          "when": "view == coderipple.impact && viewItem == cluster",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CodeRipple",
+      "properties": {
+        "coderipple.autoAnalyze": {
+          "type": "boolean",
+          "default": true,
+          "description": "Re-analyze automatically when files change."
+        },
+        "coderipple.debounceMs": {
+          "type": "number",
+          "default": 1500,
+          "description": "Debounce interval for auto-analyze."
+        },
+        "coderipple.model": {
+          "type": "string",
+          "default": "auto",
+          "description": "Preferred language model family (auto, gpt-4o-mini, gpt-4o, ...)."
+        },
+        "coderipple.maxFiles": {
+          "type": "number",
+          "default": 200,
+          "description": "Guardrail for very large changesets."
+        },
+        "coderipple.languageMode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "llm",
+            "heuristic"
+          ],
+          "default": "auto",
+          "description": "Reasoning mode. 'auto' uses LLM when available."
+        },
+        "coderipple.includeUntracked": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include untracked files in the analysis."
+        },
+        "coderipple.includeSnippets": {
+          "type": "boolean",
+          "default": false,
+          "description": "(Opt-in) Send small code snippets to the LM. Off by default for privacy."
+        },
+        "coderipple.logLevel": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warn",
+            "info",
+            "debug"
+          ],
+          "default": "info"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run bundle",
+    "bundle": "node esbuild.js --production",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^2.24.0",
+    "esbuild": "^0.21.0",
+    "typescript": "^5.4.0"
+  }
+}

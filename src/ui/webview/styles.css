@@ -1,0 +1,142 @@
+:root {
+  color-scheme: light dark;
+  --bg: var(--vscode-editor-background);
+  --fg: var(--vscode-editor-foreground);
+  --muted: var(--vscode-descriptionForeground);
+  --border: var(--vscode-panel-border);
+  --accent: var(--vscode-focusBorder);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.toolbar .spacer {
+  flex: 1;
+}
+.toolbar select,
+.toolbar button {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  font-family: inherit;
+  font-size: inherit;
+}
+.toolbar button:hover {
+  border-color: var(--accent);
+  cursor: pointer;
+}
+
+#canvas {
+  position: absolute;
+  inset: 36px 0 28px 0;
+  overflow: auto;
+}
+#svg {
+  width: 100%;
+  height: 100%;
+}
+
+#legend {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+}
+.legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.node rect,
+.node ellipse,
+.node polygon {
+  stroke: var(--border);
+  stroke-width: 1;
+  cursor: pointer;
+}
+.node text {
+  fill: var(--fg);
+  font-size: 11px;
+  pointer-events: none;
+  font-family: var(--vscode-font-family);
+}
+
+.edge {
+  stroke: var(--muted);
+  stroke-width: 1;
+  fill: none;
+  opacity: 0.7;
+}
+.edge.test {
+  stroke-dasharray: 4 3;
+}
+.edge.import {
+  stroke-width: 1.5;
+}
+
+.cluster-halo {
+  fill: var(--vscode-editor-inactiveSelectionBackground);
+  stroke: var(--border);
+  opacity: 0.35;
+  rx: 12;
+  ry: 12;
+}
+.cluster-label {
+  fill: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.risk-low {
+  fill: rgba(120, 200, 120, 0.25);
+}
+.risk-medium {
+  fill: rgba(240, 200, 80, 0.3);
+}
+.risk-high {
+  fill: rgba(240, 140, 60, 0.35);
+}
+.risk-critical {
+  fill: rgba(240, 80, 80, 0.4);
+}
+
+.dim {
+  opacity: 0.15;
+}
+.hot {
+  opacity: 1;
+}
