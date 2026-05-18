@@ -66,7 +66,6 @@ npx --yes @vscode/vsce publish --packagePath coderipple-0.3.0.vsix
 The Personal Access Token must come from the Azure DevOps organization that
 owns the `odysseylabs` publisher, with **Marketplace → Manage** scope.
 
-
 ## Privacy
 
 CodeRipple sends only paths, change kinds, line counts, symbol names, and reference edges to the language model. File contents are never transmitted unless `coderipple.includeSnippets` is enabled. All processing happens in-process; there is no external server.
