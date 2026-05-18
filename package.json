@@ -2,7 +2,7 @@
   "name": "coderipple",
   "displayName": "CodeRipple — Copilot Change Intelligence",
   "description": "See how your Copilot edits ripple through the codebase. Workspace Pulse, Impact Map, and a semantic Flow Diagram for multi-file changes.",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "publisher": "odysseylabs",
   "license": "MIT",
   "icon": "media/icon.png",
