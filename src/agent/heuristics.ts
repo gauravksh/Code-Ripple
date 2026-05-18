@@ -9,12 +9,25 @@ import type {
 } from "../core/types";
 import { isConfigPath, isTestPath } from "../util/paths";
 import { maxRisk, scoreFileRisk, testStatusFromFiles } from "../core/risk";
+import { inferChangeIntent, inferFilePurpose } from "../core/intent";
+import {
+  computeBlastRadius,
+  computeTrustScore,
+  recommendTests,
+} from "../core/trust";
 
 /**
  * Deterministic fallback when the LLM is unavailable.
  * Cluster strategy: top-level directory + tests/config carve-outs.
  */
 export function heuristicIntelligence(cs: ChangeSet): ChangeIntelligence {
+  // Annotate per-file purpose + per-file risk in-place so the dashboard
+  // and flow view can surface them without recomputation.
+  for (const f of cs.files) {
+    if (!f.purpose) f.purpose = inferFilePurpose(f);
+    if (!f.risk) f.risk = scoreFileRisk(f);
+  }
+
   const buckets = new Map<string, ChangedFile[]>();
   for (const f of cs.files) {
     const key = bucketKey(f);
@@ -40,7 +53,7 @@ export function heuristicIntelligence(cs: ChangeSet): ChangeIntelligence {
   const risk = maxRisk(clusters.map((c) => c.risk));
   const ts = testStatusFromFiles(cs.files);
 
-  return {
+  const base: ChangeIntelligence = {
     changeSet: cs,
     summary: oneLineSummary(cs, clusters, risk),
     narrative: narrative(cs, clusters),
@@ -51,6 +64,13 @@ export function heuristicIntelligence(cs: ChangeSet): ChangeIntelligence {
     source: "heuristic",
     partial: false,
   };
+
+  base.intent = inferChangeIntent(cs);
+  base.tests = recommendTests(cs);
+  base.blastRadius = computeBlastRadius(cs);
+  // Trust depends on the rest of the intelligence — compute last.
+  base.trust = computeTrustScore(base);
+  return base;
 }
 
 function bucketKey(f: ChangedFile): string {

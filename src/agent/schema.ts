@@ -7,6 +7,13 @@ import type {
   RiskLevel,
   TestStatus,
 } from "../core/types";
+import { inferChangeIntent, inferFilePurpose } from "../core/intent";
+import {
+  computeBlastRadius,
+  computeTrustScore,
+  recommendTests,
+} from "../core/trust";
+import { scoreFileRisk } from "../core/risk";
 
 export const AGENT_OUTPUT_SCHEMA = {
   $schema: "http://json-schema.org/draft-07/schema#",
@@ -147,7 +154,11 @@ export function attachToChangeSet(
   source: ChangeIntelligence["source"],
   partial = false,
 ): ChangeIntelligence {
-  return {
+  for (const f of cs.files) {
+    if (!f.purpose) f.purpose = inferFilePurpose(f);
+    if (!f.risk) f.risk = scoreFileRisk(f);
+  }
+  const intel: ChangeIntelligence = {
     changeSet: cs,
     summary: parsed.summary,
     narrative: parsed.narrative,
@@ -158,6 +169,11 @@ export function attachToChangeSet(
     source,
     partial,
   };
+  intel.intent = inferChangeIntent(cs);
+  intel.tests = recommendTests(cs);
+  intel.blastRadius = computeBlastRadius(cs);
+  intel.trust = computeTrustScore(intel);
+  return intel;
 }
 
 function sanitizeCluster(

@@ -37,11 +37,35 @@ See the `coderipple.*` settings (auto-analyze, debounceMs, model, maxFiles, lang
 ## Build
 
 ```bash
-npm install
-npm run bundle
+npm install          # install dev dependencies
+npm run bundle       # produce out/extension.js (esbuild, production)
 ```
 
-Press F5 in VS Code to launch an Extension Development Host.
+Press F5 in VS Code to launch an Extension Development Host with the
+bundled extension loaded.
+
+### Package
+
+```bash
+npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository
+```
+
+Produces `coderipple-<version>.vsix` in the project root. Install it locally
+with **Extensions: Install from VSIX…** in VS Code, or share the file
+directly.
+
+### Publish to the Marketplace
+
+```bash
+npx --yes @vscode/vsce login odysseylabs                # one-time, paste PAT
+npx --yes @vscode/vsce publish                          # re-packages and uploads
+# or upload an already-built vsix:
+npx --yes @vscode/vsce publish --packagePath coderipple-0.3.0.vsix
+```
+
+The Personal Access Token must come from the Azure DevOps organization that
+owns the `odysseylabs` publisher, with **Marketplace → Manage** scope.
+
 
 ## Privacy
 

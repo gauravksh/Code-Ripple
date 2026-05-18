@@ -2,7 +2,7 @@
   "name": "coderipple",
   "displayName": "CodeRipple — Copilot Change Intelligence",
   "description": "See how your Copilot edits ripple through the codebase. Workspace Pulse, Impact Map, and a semantic Flow Diagram for multi-file changes.",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "publisher": "odysseylabs",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -72,6 +72,11 @@
         "icon": "$(graph)"
       },
       {
+        "command": "coderipple.openDashboard",
+        "title": "CodeRipple: Open Pulse Dashboard",
+        "icon": "$(dashboard)"
+      },
+      {
         "command": "coderipple.explainCluster",
         "title": "CodeRipple: Explain This Cluster"
       },
@@ -86,19 +91,43 @@
       {
         "command": "coderipple.showMetrics",
         "title": "CodeRipple: Show Local Metrics"
+      },
+      {
+        "command": "coderipple.ask",
+        "title": "CodeRipple: Ask About Changes",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "coderipple.switchRepo",
+        "title": "CodeRipple: Switch Active Repository",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "coderipple.setActiveRepo",
+        "title": "CodeRipple: Set Active Repository"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "coderipple.analyze",
+          "command": "coderipple.switchRepo",
+          "when": "view == coderipple.pulse",
+          "group": "navigation@0"
+        },
+        {
+          "command": "coderipple.openDashboard",
           "when": "view == coderipple.pulse",
           "group": "navigation@1"
         },
         {
-          "command": "coderipple.openFlow",
+          "command": "coderipple.analyze",
           "when": "view == coderipple.pulse",
           "group": "navigation@2"
+        },
+        {
+          "command": "coderipple.openFlow",
+          "when": "view == coderipple.pulse",
+          "group": "navigation@3"
         },
         {
           "command": "coderipple.refresh",
@@ -107,6 +136,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "coderipple.setActiveRepo",
+          "when": "view == coderipple.pulse && viewItem == workspace",
+          "group": "inline"
+        },
         {
           "command": "coderipple.explainCluster",
           "when": "view == coderipple.impact && viewItem == cluster",
@@ -124,8 +158,8 @@
         },
         "coderipple.debounceMs": {
           "type": "number",
-          "default": 1500,
-          "description": "Debounce interval for auto-analyze."
+          "default": 2500,
+          "description": "Debounce interval for auto-analyze on live edits."
         },
         "coderipple.model": {
           "type": "string",

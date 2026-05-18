@@ -4,6 +4,7 @@ import type {
   ChangedFile,
   ChangedSymbol,
   ReferenceEdge,
+  ReferenceLocation,
   ChangeKind,
 } from "./types";
 import {
@@ -20,38 +21,73 @@ import type { Logger } from "../services/logger";
 
 const SYMBOL_CONCURRENCY = 4;
 const REF_CONCURRENCY = 2;
+const MAX_REFS_PER_SYMBOL = 25;
 
 export class Indexer {
   constructor(private log: Logger) {}
 
   async build(
     folder: vscode.WorkspaceFolder,
-    opts: { maxFiles: number; includeUntracked: boolean },
+    opts: { maxFiles: number; includeUntracked: boolean; repo?: GitRepository },
   ): Promise<ChangeSet> {
     const api = await getGitAPI();
-    const repo = api ? pickRepository(api, folder) : undefined;
+    if (!api) {
+      this.log.warn(
+        "vscode.git extension not available; CodeRipple v0.1 requires git.",
+      );
+    } else {
+      this.log.debug(
+        `git api state=${api.state}, repositories=${api.repositories.length}, folder=${folder.uri.fsPath}`,
+      );
+    }
+    const repo = opts.repo ?? (api ? pickRepository(api, folder) : undefined);
 
     let files: ChangedFile[] = [];
     let truncated = false;
     let branch: string | undefined;
     let head: string | undefined;
+    let remote: string | undefined;
+    // Use the repo root as the analysis root so file ids resolve correctly even
+    // when the repo is a sub-folder of the workspace folder.
+    const analysisRoot = repo ? repo.rootUri.fsPath : folder.uri.fsPath;
+    const analysisName = repo ? repoLabel(repo, folder) : folder.name;
 
     if (repo) {
       branch = repo.state.HEAD?.name;
       head = repo.state.HEAD?.commit;
-      const collected = await this.collectFromGit(repo, folder, opts);
+      remote =
+        (repo.state as any).remotes?.[0]?.fetchUrl ??
+        (repo.state as any).remotes?.[0]?.pushUrl ??
+        undefined;
+      this.log.info(
+        `Using repository root=${repo.rootUri.fsPath}, branch=${branch ?? "?"}, ` +
+          `workingTree=${repo.state.workingTreeChanges.length}, ` +
+          `index=${repo.state.indexChanges.length}, ` +
+          `untracked=${repo.state.untrackedChanges?.length ?? 0}`,
+      );
+      const collected = await this.collectFromGit(repo, analysisRoot, opts);
       files = collected.files;
       truncated = collected.truncated;
-    } else {
-      this.log.warn("No git repository found; CodeRipple v0.1 requires git.");
+      if (files.length === 0) {
+        this.log.warn(
+          `[${analysisName}] Repository has no working-tree / index changes.`,
+        );
+      }
+    } else if (api) {
+      this.log.warn(
+        `No git repository matched workspace folder ${folder.uri.fsPath}. ` +
+          `Known repos: [${api.repositories.map((r) => r.rootUri.fsPath).join(", ") || "none"}]`,
+      );
     }
 
-    const edges = await this.collectEdges(files, folder);
+    const edges = await this.collectEdges(files, analysisRoot);
 
     return {
-      workspaceName: folder.name,
+      workspaceName: analysisName,
+      workspaceRoot: analysisRoot,
       branch,
       head,
+      remote,
       files,
       edges,
       generatedAt: Date.now(),
@@ -61,10 +97,9 @@ export class Indexer {
 
   private async collectFromGit(
     repo: GitRepository,
-    folder: vscode.WorkspaceFolder,
+    analysisRoot: string,
     opts: { maxFiles: number; includeUntracked: boolean },
   ): Promise<{ files: ChangedFile[]; truncated: boolean }> {
-    const root = folder.uri.fsPath;
     const dedup = new Map<string, GitChange>();
     const push = (c: GitChange) => {
       if (!dedup.has(c.uri.fsPath)) dedup.set(c.uri.fsPath, c);
@@ -87,7 +122,7 @@ export class Indexer {
     const files: ChangedFile[] = [];
     await mapWithConcurrency(work, SYMBOL_CONCURRENCY, async (c) => {
       try {
-        const f = await this.fileFromChange(repo, c, root);
+        const f = await this.fileFromChange(repo, c, analysisRoot);
         if (f) files.push(f);
       } catch (e) {
         this.log.warn("Failed to index file", c.uri.fsPath, e);
@@ -100,9 +135,9 @@ export class Indexer {
   private async fileFromChange(
     repo: GitRepository,
     c: GitChange,
-    root: string,
+    analysisRoot: string,
   ): Promise<ChangedFile | undefined> {
-    const rel = toRelativePosix(root, c.uri.fsPath);
+    const rel = toRelativePosix(analysisRoot, c.uri.fsPath);
     const kind: ChangeKind = mapStatus(c.status, !!c.renameUri);
 
     let unified = "";
@@ -164,17 +199,21 @@ export class Indexer {
 
   private async collectEdges(
     files: ChangedFile[],
-    folder: vscode.WorkspaceFolder,
+    analysisRoot: string,
   ): Promise<ReferenceEdge[]> {
     const fileIds = new Set(files.map((f) => f.id));
     const edges: ReferenceEdge[] = [];
-    const root = folder.uri.fsPath;
+    const root = analysisRoot;
+    const rootUri = vscode.Uri.file(root);
 
     await mapWithConcurrency(files, REF_CONCURRENCY, async (f) => {
       if (f.kind === "deleted") return;
-      const uri = vscode.Uri.joinPath(folder.uri, ...f.path.split("/"));
+      const uri = vscode.Uri.joinPath(rootUri, ...f.path.split("/"));
+      const aggregated: ReferenceLocation[] = [];
+      const seenAgg = new Set<string>();
+
       // Only top few symbols per file to keep things tractable.
-      for (const sym of f.symbols.slice(0, 5)) {
+      for (const sym of f.symbols.slice(0, 6)) {
         const pos = new vscode.Position(sym.startLine - 1, 0);
         const refs = await vscode.commands
           .executeCommand<
@@ -185,16 +224,44 @@ export class Indexer {
             () => [] as vscode.Location[],
           );
 
-        for (const r of refs.slice(0, 20)) {
+        const symLocs: ReferenceLocation[] = [];
+        for (const r of refs.slice(0, MAX_REFS_PER_SYMBOL)) {
           const rel = toRelativePosix(root, r.uri.fsPath);
-          if (rel === f.id) continue;
-          const kind = isTestPath(rel) ? "test" : "call";
-          // Only keep edges that touch *another* changed file — that's the blast radius.
-          if (fileIds.has(rel)) {
+          if (rel === f.id) continue; // skip self-refs
+          const inside = fileIds.has(rel);
+          const loc: ReferenceLocation = {
+            path: rel,
+            line: r.range.start.line + 1,
+            column: r.range.start.character + 1,
+            symbol: sym.name,
+            external: !inside,
+          };
+          try {
+            const doc = await vscode.workspace.openTextDocument(r.uri);
+            loc.preview = doc
+              .lineAt(r.range.start.line)
+              .text.trim()
+              .slice(0, 160);
+          } catch {
+            /* ignore */
+          }
+          symLocs.push(loc);
+
+          const key = `${rel}:${loc.line}:${sym.name}`;
+          if (!seenAgg.has(key)) {
+            seenAgg.add(key);
+            aggregated.push(loc);
+          }
+
+          // Cross-file changeset edge — drives the flow diagram.
+          if (inside) {
+            const kind = isTestPath(rel) ? "test" : "call";
             edges.push({ from: f.id, to: rel, kind, weight: 1 });
           }
         }
+        sym.references = symLocs;
       }
+      f.references = aggregated;
     });
 
     return dedupEdges(edges);
@@ -210,6 +277,16 @@ function dedupEdges(edges: ReferenceEdge[]): ReferenceEdge[] {
     else m.set(k, { ...e });
   }
   return Array.from(m.values());
+}
+
+function repoLabel(
+  repo: GitRepository,
+  folder: vscode.WorkspaceFolder,
+): string {
+  const repoBase =
+    repo.rootUri.fsPath.split(/[\\/]/).filter(Boolean).pop() || "repo";
+  if (repo.rootUri.fsPath === folder.uri.fsPath) return folder.name;
+  return repoBase;
 }
 
 function detectLanguage(rel: string): string {

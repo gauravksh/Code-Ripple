@@ -10,9 +10,10 @@ export class StatusBar implements vscode.Disposable {
       vscode.StatusBarAlignment.Left,
       50,
     );
-    this.item.command = "coderipple.openFlow";
+    this.item.command = "coderipple.openDashboard";
     store.onChange(() => this.render());
     store.onStatus(() => this.render());
+    store.onActive(() => this.render());
     this.render();
     this.item.show();
   }
@@ -26,11 +27,16 @@ export class StatusBar implements vscode.Disposable {
     const s = this.store.current;
     if (!s) {
       this.item.text = "$(pulse) CodeRipple";
-      this.item.tooltip = "No analysis yet. Click to open flow.";
+      this.item.tooltip = "No analysis yet. Click to open the dashboard.";
       return;
     }
-    this.item.text = `${icon(s)} ${s.changeSet.files.length} files • ${capitalize(s.risk)}`;
-    this.item.tooltip = s.summary || "CodeRipple";
+    const count = this.store.list().length;
+    const repoTag = count > 1 ? ` · ${s.changeSet.workspaceName}` : "";
+    this.item.text = `${icon(s)} ${s.changeSet.files.length} files • ${capitalize(s.risk)}${repoTag}`;
+    this.item.tooltip =
+      (count > 1
+        ? `Active repo: ${s.changeSet.workspaceName} (${count} repos). Click to open the dashboard.\n`
+        : "Click to open the dashboard.\n") + (s.summary || "CodeRipple");
   }
 
   dispose(): void {

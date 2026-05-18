@@ -5,6 +5,16 @@
   --muted: var(--vscode-descriptionForeground);
   --border: var(--vscode-panel-border);
   --accent: var(--vscode-focusBorder);
+  --hover: var(--vscode-list-hoverBackground);
+  --add: #2ea043;
+  --del: #f85149;
+  --info: #58a6ff;
+  --warn: #d29922;
+
+  --risk-low: #3fb950;
+  --risk-medium: #d29922;
+  --risk-high: #db6d28;
+  --risk-critical: #f85149;
 }
 
 * {
@@ -20,8 +30,21 @@ body {
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
   color: var(--fg);
-  background: var(--bg);
+  background:
+    radial-gradient(
+      800px 400px at 0% -10%,
+      rgba(88, 166, 255, 0.06),
+      transparent 60%
+    ),
+    var(--bg);
+  overflow: hidden;
 }
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Toolbar ---------- */
 
 .toolbar {
   display: flex;
@@ -29,6 +52,13 @@ body {
   gap: 8px;
   padding: 6px 12px;
   border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 3;
+  flex: 0 0 auto;
+  min-height: 38px;
+  flex-wrap: wrap;
 }
 .toolbar .spacer {
   flex: 1;
@@ -38,105 +68,385 @@ body {
   background: transparent;
   color: inherit;
   border: 1px solid var(--border);
-  padding: 2px 8px;
+  padding: 3px 10px;
+  border-radius: 6px;
   font-family: inherit;
   font-size: inherit;
-}
-.toolbar button:hover {
-  border-color: var(--accent);
   cursor: pointer;
 }
+.toolbar button:hover,
+.toolbar select:hover {
+  border-color: var(--accent);
+  background: var(--hover);
+}
+.toolbar .filter {
+  color: var(--muted);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- Tabs ---------- */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  max-width: 60%;
+}
+.tabs.single {
+  display: none;
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: all 120ms ease;
+}
+.tab:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+.tab.active {
+  color: var(--fg);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.tab-name {
+  font-weight: 600;
+}
+.tab-branch {
+  font-size: 10px;
+  color: var(--muted);
+}
+.tab-risk {
+  margin-left: 4px;
+}
+
+/* ---------- Canvas ---------- */
 
 #canvas {
-  position: absolute;
-  inset: 36px 0 28px 0;
-  overflow: auto;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(transparent 0, transparent 100%),
+    radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 1px) 0
+      0/24px 24px;
 }
 #svg {
   width: 100%;
   height: 100%;
+  cursor: grab;
 }
 
+/* ---------- Legend ---------- */
+
 #legend {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  position: relative;
+  flex: 0 0 auto;
   height: 28px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   padding: 0 12px;
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: 11px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
 }
 .legend-swatch {
   display: inline-block;
   width: 10px;
   height: 10px;
-  border-radius: 2px;
+  border-radius: 3px;
   margin-right: 4px;
   vertical-align: middle;
 }
 
+/* ---------- Risk colours ---------- */
+
+.risk-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fff;
+}
+.risk-bg-low {
+  background: var(--risk-low);
+}
+.risk-bg-medium {
+  background: var(--risk-medium);
+}
+.risk-bg-high {
+  background: var(--risk-high);
+}
+.risk-bg-critical {
+  background: var(--risk-critical);
+}
+
+.legend-swatch.risk-low {
+  background: var(--risk-low);
+}
+.legend-swatch.risk-medium {
+  background: var(--risk-medium);
+}
+.legend-swatch.risk-high {
+  background: var(--risk-high);
+}
+.legend-swatch.risk-critical {
+  background: var(--risk-critical);
+}
+
+/* ---------- Nodes ---------- */
+
 .node rect,
 .node ellipse,
 .node polygon {
-  stroke: var(--border);
+  stroke: color-mix(in srgb, var(--fg) 40%, transparent);
   stroke-width: 1;
   cursor: pointer;
+  transition:
+    stroke 120ms ease,
+    transform 120ms ease;
 }
-.node text {
+.node:hover rect,
+.node:hover ellipse,
+.node:hover polygon {
+  stroke: var(--accent);
+  stroke-width: 1.6;
+}
+.node text.node-label {
   fill: var(--fg);
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
   pointer-events: none;
   font-family: var(--vscode-font-family);
 }
+.node text.node-sub {
+  fill: var(--muted);
+  font-size: 10px;
+  pointer-events: none;
+  font-family: var(--vscode-editor-font-family);
+}
+.node .kind-dot {
+  fill: color-mix(in srgb, var(--fg) 18%, transparent);
+  stroke: color-mix(in srgb, var(--fg) 40%, transparent);
+}
+.node .kind-letter {
+  fill: var(--fg);
+  font-size: 9px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* ---------- Edges ---------- */
 
 .edge {
   stroke: var(--muted);
-  stroke-width: 1;
+  stroke-width: 1.2;
   fill: none;
-  opacity: 0.7;
+  opacity: 0.5;
+  color: var(--muted);
+  transition:
+    opacity 120ms ease,
+    stroke-width 120ms ease;
 }
 .edge.test {
   stroke-dasharray: 4 3;
 }
 .edge.import {
-  stroke-width: 1.5;
+  stroke-width: 1.6;
 }
+.edge.hot {
+  opacity: 1;
+  stroke: var(--info);
+  color: var(--info);
+  stroke-width: 2;
+}
+.edge.dim-edge {
+  opacity: 0.12;
+}
+
+/* ---------- Cluster halo ---------- */
 
 .cluster-halo {
   fill: var(--vscode-editor-inactiveSelectionBackground);
   stroke: var(--border);
+  stroke-dasharray: 3 4;
   opacity: 0.35;
-  rx: 12;
-  ry: 12;
 }
 .cluster-label {
   fill: var(--muted);
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.risk-low {
-  fill: rgba(120, 200, 120, 0.25);
-}
-.risk-medium {
-  fill: rgba(240, 200, 80, 0.3);
-}
-.risk-high {
-  fill: rgba(240, 140, 60, 0.35);
-}
-.risk-critical {
-  fill: rgba(240, 80, 80, 0.4);
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
 .dim {
-  opacity: 0.15;
+  opacity: 0.2;
 }
-.hot {
-  opacity: 1;
+
+/* ---------- Hover panel ---------- */
+
+.hover-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 320px;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  z-index: 4;
+}
+.hover-panel.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+}
+.hp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.hp-title {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hp-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.meta-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  background: var(--hover);
+  border-radius: 4px;
+  color: var(--muted);
+  font-family: var(--vscode-editor-font-family);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta-tag.add {
+  color: var(--add);
+}
+.meta-tag.del {
+  color: var(--del);
+}
+.hp-section {
+  margin: 8px 0;
+}
+.hp-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.hp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hp-symbol,
+.hp-ref {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.hp-symbol:hover,
+.hp-ref:hover {
+  background: var(--hover);
+}
+.hp-sym-name {
+  font-weight: 600;
+  font-family: var(--vscode-editor-font-family);
+}
+.hp-sym-kind {
+  color: var(--muted);
+  font-size: 10px;
+}
+.hp-sym-refs {
+  margin-left: auto;
+  color: var(--warn);
+  font-size: 10px;
+}
+.hp-ref {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.hp-ref-loc {
+  font-family: var(--vscode-editor-font-family);
+  color: var(--info);
+  font-size: 11px;
+}
+.hp-ref.external .hp-ref-loc {
+  color: var(--warn);
+}
+.hp-ref-preview {
+  color: var(--muted);
+  font-family: var(--vscode-editor-font-family);
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.hp-hint {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  font-style: italic;
+}
+.muted {
+  color: var(--muted);
+}
+
+.hp-purpose {
+  margin: 6px 0 10px 0;
+  font-style: italic;
+  font-size: 0.85rem;
+  opacity: 0.85;
+  border-left: 2px solid
+    color-mix(in srgb, var(--vscode-editor-foreground) 25%, transparent);
+  padding-left: 8px;
 }

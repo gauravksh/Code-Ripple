@@ -7,7 +7,7 @@ export interface LLMResult {
 }
 
 const LLM_TIMEOUT_MS = 20_000;
-
+//testing
 /**
  * Thin wrapper around `vscode.lm`. Returns `undefined` if no model is
  * available (e.g. user not signed in to Copilot, or VS Code build

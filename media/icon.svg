@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="60%" stop-color="#0d1b2a"/>
+      <stop offset="100%" stop-color="#05080d"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#58a6ff"/>
+      <stop offset="100%" stop-color="#3fb950"/>
+    </linearGradient>
+    <linearGradient id="core" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#79c0ff"/>
+      <stop offset="100%" stop-color="#58a6ff"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="128" height="128" rx="22" ry="22" fill="url(#bg)"/>
+
+  <g transform="translate(64 64)" filter="url(#glow)">
+    <circle r="48" fill="none" stroke="url(#ring)" stroke-width="2" opacity="0.25"/>
+    <circle r="36" fill="none" stroke="url(#ring)" stroke-width="2.2" opacity="0.45"/>
+    <circle r="24" fill="none" stroke="url(#ring)" stroke-width="2.6" opacity="0.7"/>
+    <circle r="12" fill="url(#core)"/>
+  </g>
+
+  <g transform="translate(64 64)" opacity="0.9">
+    <circle r="3.5" fill="#ffffff"/>
+  </g>
+</svg>
