@@ -34,38 +34,6 @@ Everything runs locally inside VS Code. When the Copilot Language Model API is a
 
 See the `coderipple.*` settings (auto-analyze, debounceMs, model, maxFiles, languageMode, includeUntracked, includeSnippets, logLevel).
 
-## Build
-
-```bash
-npm install          # install dev dependencies
-npm run bundle       # produce out/extension.js (esbuild, production)
-```
-
-Press F5 in VS Code to launch an Extension Development Host with the
-bundled extension loaded.
-
-### Package
-
-```bash
-npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository
-```
-
-Produces `coderipple-<version>.vsix` in the project root. Install it locally
-with **Extensions: Install from VSIX…** in VS Code, or share the file
-directly.
-
-### Publish to the Marketplace
-
-```bash
-npx --yes @vscode/vsce login odysseylabs                # one-time, paste PAT
-npx --yes @vscode/vsce publish                          # re-packages and uploads
-# or upload an already-built vsix:
-npx --yes @vscode/vsce publish --packagePath coderipple-0.3.0.vsix
-```
-
-The Personal Access Token must come from the Azure DevOps organization that
-owns the `odysseylabs` publisher, with **Marketplace → Manage** scope.
-
 ## Privacy
 
 CodeRipple sends only paths, change kinds, line counts, symbol names, and reference edges to the language model. File contents are never transmitted unless `coderipple.includeSnippets` is enabled. All processing happens in-process; there is no external server.
